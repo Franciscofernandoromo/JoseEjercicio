@@ -1,0 +1,190 @@
+
+ package Paquete;
+
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.*;
+
+
+// cada jugador solo puede poner 3 fichas, en el caso de que ponga mas de 3 fichas, movera la ficha que tenga alado en los 4 sentidos
+
+// [x] [o] [x]
+// [] [o] [o]
+// [] [x] []
+
+
+public class TresEnRayaUI implements ActionListener {
+    JFrame container = new JFrame();
+    JPanel panel = new JPanel();
+    JPanel buttonsPanel = new JPanel();
+    JLabel textfield = new JLabel();
+    JButton[] buttons = new JButton[9];
+
+    int[] count = new int[2];
+
+
+    Jugador jugador1 = null;
+    Jugador jugador2 = null;
+
+    Jugador jugador = null;
+
+    JButton bottonSeleccionado = null;
+
+    boolean necesitaSeleccionar = false;
+
+    boolean player1Turn = true;
+
+    Ficha fichaPendiente = null;
+
+    public TresEnRayaUI() {
+        initComponents();
+    }
+
+    private void initComponents() {
+        container.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // cerrar frame
+        container.setSize(500, 500);
+        container.getContentPane().setBackground(new Color(255, 255, 255));
+        container.setTitle("Tres en Raya");
+        container.setLayout(new BorderLayout());
+        container.setVisible(true);
+
+        textfield.setBackground(Color.white);
+        textfield.setForeground(Color.gray);
+        textfield.setFont(new Font("Serif", Font.BOLD, 25));
+        textfield.setHorizontalAlignment(JLabel.CENTER);
+        textfield.setText("Turno del jugador 1");
+        textfield.setForeground(Color.red);
+        textfield.setOpaque(true);
+
+        panel.setLayout(new BorderLayout());
+        panel.setBounds(0, 0, 800, 100);
+
+        buttonsPanel.setLayout(new GridLayout(3, 3));
+
+        for (int i = 0; i < 9; i++) {
+            buttons[i] = new JButton();
+            buttonsPanel.add(buttons[i]);
+            buttons[i].setFont(new Font("Serif", Font.BOLD, 120));
+            buttons[i].setFocusable(false);
+            buttons[i].addActionListener(this);
+        }
+
+        panel.add(textfield);
+        container.add(panel, BorderLayout.NORTH);
+        container.add(buttonsPanel);
+
+        jugador1 = new Jugador("x", "X", Color.red);
+        jugador2 = new Jugador("o", "O", Color.blue);
+    }
+
+
+    @Override
+    public void actionPerformed(ActionEvent actionEvent) {
+        for (int i = 0; i < 9; i++) {
+            if (actionEvent.getSource() == buttons[i]) {
+                // comprobar el turno
+                String text = buttons[i].getText();
+
+                jugador = jugador1; // X
+                if (!player1Turn) {
+                    jugador = jugador2; // O
+                }
+                necesitaSeleccionar = jugador.getFichasColocadas() == 3;
+
+                if (!necesitaSeleccionar) {
+                    if (text.equals("") && puedeColocarFicha(fichaPendiente, i)) {
+                        buttons[i].setText(jugador.getFicha());
+                        buttons[i].setForeground(jugador.getColor());
+                        jugador.colocarFicha(i / 3, i % 3);
+
+
+                        if (jugador.esGanador()){
+                            GameOver("Jugador" + (player1Turn ? " 1 " : " 2 "));
+                        } else {
+                            player1Turn = !player1Turn;
+                        }
+                    }
+                } else {
+                    if (!puedeMoverEstaFicha(i)) {
+                        int posicionFicha = jugador.tieneFichaEnPosicion(i / 3, i % 3);
+                        if (posicionFicha != -1) {
+                            fichaPendiente = new Ficha(i / 3, i % 3);
+                            jugador.descolocarFicha(posicionFicha);
+                            buttons[i].setText("");
+                        }
+                    }
+                }
+
+                textfield.setText("Turno del jugador" + (player1Turn ? "1" : "2"));
+                textfield.setForeground(player1Turn ? jugador1.getColor() : jugador2.getColor());
+                break;
+            }
+        }
+
+    }
+
+    //  0   1   2
+    // [x] [o] []
+    // 3   4   5
+    // [] [] [o]
+    // 6  7   8
+    // [] [x] [o] 2 * 3 + 1 = 7
+
+    public boolean puedeMoverEstaFicha(int indicePulsado) {
+        int fila = indicePulsado / 3;
+        int columna = indicePulsado % 3;
+
+        boolean tieneArriba = fila == 0 || jugador.tieneFichaEnPosicion(fila - 1, columna) != -1;
+        boolean tieneAbajo = fila == 2 || jugador.tieneFichaEnPosicion(fila + 1, columna) != -1;
+        boolean tieneIzquierda = columna == 0 || jugador.tieneFichaEnPosicion(fila, columna - 1) != -1;
+        boolean tieneDerecha = columna == 2 || jugador.tieneFichaEnPosicion(fila, columna + 1) != -1;
+
+        return !tieneAbajo && !tieneArriba && !tieneDerecha && !tieneIzquierda;
+    }
+
+    public boolean puedeColocarFicha(Ficha ficha, int indicePulsado) {
+        if (ficha == null) {
+            return true;
+        }
+
+        int fila = ficha.getFila();
+        int columna = ficha.getColumna();
+        boolean puedeColocar = false;
+        int indiceBoton = fila * 3 + columna;
+
+        if (indicePulsado == indiceBoton) {
+            return false;
+        }
+
+        boolean esAbajo = indicePulsado == indiceBoton + 3;
+        boolean esArriba = indicePulsado == indiceBoton - 3;
+        boolean esDerecha = indicePulsado == indiceBoton + 1;
+        boolean esIzquierda = indicePulsado == indiceBoton - 1;
+
+        if ((esAbajo || esArriba || esDerecha || esIzquierda) && buttons[indicePulsado].getText().equals("")) {
+            puedeColocar = true;
+        }
+
+
+        return puedeColocar;
+    }
+
+
+    public void GameOver(String winner) {
+        for (int i = 0; i < 9; i++) {
+            buttons[i].setEnabled(false);
+        }
+
+        String s = "El ganador es el jugador " + winner;
+
+        Object[] option = {"Restart", "Exit"};
+        int n = JOptionPane.showOptionDialog(container, "El ganador es el jugador \n" + winner, "Juego Terminado", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[0]);
+        if (n == 0) {
+            container.dispose();
+            new TresEnRayaUI();
+        } else {
+            container.dispose();
+        }
+    }
+}
